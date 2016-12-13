@@ -11,6 +11,7 @@ import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
@@ -39,7 +40,6 @@ import dji.sdk.missionmanager.DJIMissionManager;
 import dji.sdk.missionmanager.DJIPanoramaMission;
 import dji.sdk.missionmanager.DJIWaypointMission;
 import dji.sdk.products.DJIAircraft;
-import dji.sdk.base.DJIBaseComponent;
 import dji.sdk.base.DJIBaseProduct;
 
 /**
@@ -60,8 +60,16 @@ public abstract class MissionManagerBaseView extends LinearLayout implements Vie
     protected Button mDownloadBtn;
 
     protected TextView mMissionPushInfoTV;
+    protected TextView mTrajectoryInfoTV;
     protected TextView mFCPushInfoTV;
     protected ProgressBar mPB;
+
+    protected EditText mRD;
+    protected EditText mBB;
+    protected EditText mAD;
+    protected EditText mAF;
+    protected EditText mDZ;
+
 
     private Handler mUIHandler = new Handler(Looper.getMainLooper());
 
@@ -178,6 +186,7 @@ public abstract class MissionManagerBaseView extends LinearLayout implements Vie
         mFadeoutAnimation = AnimationUtils.loadAnimation(mContext, R.anim.fade_out);
 
         mMissionPushInfoTV = (TextView)findViewById(R.id.tv_mission_info);
+        mTrajectoryInfoTV = (TextView)findViewById(R.id.tv_trajectory_info);
         mFCPushInfoTV = (TextView)findViewById(R.id.tv_fc_info);
         mPrepareBtn = (Button)findViewById(R.id.btn_prepare);
         mStartBtn = (Button)findViewById(R.id.btn_start);
@@ -193,6 +202,12 @@ public abstract class MissionManagerBaseView extends LinearLayout implements Vie
         mPauseBtn.setOnClickListener(this);
         mResumeBtn.setOnClickListener(this);
         mDownloadBtn.setOnClickListener(this);
+
+        mRD = (EditText)findViewById(R.id.et_rd);
+        mBB = (EditText)findViewById(R.id.et_b);
+        mAD = (EditText)findViewById(R.id.et_ad);
+        mAF = (EditText)findViewById(R.id.et_af);
+        mDZ = (EditText)findViewById(R.id.et_d0);
     }
 
     protected abstract DJIMission initMission();

@@ -2,6 +2,7 @@ package com.dji.sdk.sample.missionmanager;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.util.Log;
 
 import com.dji.sdk.sample.common.Utils;
 
@@ -29,54 +30,63 @@ public class WaypointMissionView extends MissionManagerBaseView {
         super(context, attrs);
     }
 
+    private double sigmoid(double x) {
+        return 1.0 / (1.0 + Math.pow(Math.E, -x));
+    }
+
+    private double getTrajectory(double x, double r_d, float a_f, float a_d, float b) {
+        return a_f - (a_f - a_d) * sigmoid((r_d * x) + b);
+    }
+
     @Override
     protected DJIMission initMission() {
+        short NUM_WAYPOINTS = 5;
+        short STARTING_DISTANCE = 20;  // meters
+        float ALT_FLYING = Float.valueOf(mAF.getText().toString());  // meters
+        float ALT_DELIVERY = Float.valueOf(mAD.getText().toString());  // meters
+        double RATE_DESCENT = Double.valueOf(mRD.getText().toString());
+        float B_OFFSET = Float.valueOf(mBB.getText().toString());
+
+//        Log.d("SIGMOID SANITY CHECK", "START");
+//        Log.d("SIG(1)", String.valueOf(sigmoid(1.0)));
+//        Log.d("SIG(-1)", String.valueOf(sigmoid(-1.0)));
+//        Log.d("SIG(0.27)", String.valueOf(sigmoid(0.27)));
+//
+//        Log.d("TRAJECTORY SANITY CHECK", "START");
+//        Log.d("TRAJ(")
+
+
+
         if (!Utils.checkGpsCoordinate(mHomeLatitude, mHomeLongitude)) {
             Utils.setResultToToast(mContext, "No home point!!!");
             return null;
         }
 
+        StringBuffer trajSB = new StringBuffer();
+
         // Step 1: create mission
         DJIWaypointMission waypointMission = new DJIWaypointMission();
-        waypointMission.maxFlightSpeed = 14;
-        waypointMission.autoFlightSpeed = 4;
+        waypointMission.maxFlightSpeed = 15;
+        waypointMission.autoFlightSpeed = 2;
         List<DJIWaypoint> waypointsList = new LinkedList<>();
 
-        // Step 2: create waypoints and prepare coordinates
-//        DJIWaypoint northPoint = new DJIWaypoint(mHomeLatitude + 10 * Utils.ONE_METER_OFFSET, mHomeLongitude, 10f);
-//        DJIWaypoint eastPoint = new DJIWaypoint(mHomeLatitude, mHomeLongitude + 10 * Utils.calcLongitudeOffset(mHomeLatitude), 20f);
-//        DJIWaypoint southPoint = new DJIWaypoint(mHomeLatitude - 10 * Utils.ONE_METER_OFFSET, mHomeLongitude, 30f);
-//        DJIWaypoint westPoint = new DJIWaypoint(mHomeLatitude, mHomeLongitude - 10 * Utils.calcLongitudeOffset(mHomeLatitude), 40f);
-        DJIWaypoint fly0 = new DJIWaypoint(mHomeLatitude - 20 * Utils.ONE_METER_OFFSET, mHomeLongitude, 10);
-        DJIWaypoint fly1 = new DJIWaypoint(mHomeLatitude - 10 * Utils.ONE_METER_OFFSET, mHomeLongitude, 10);
-        DJIWaypoint fly2 = new DJIWaypoint(mHomeLatitude - 8 * Utils.ONE_METER_OFFSET, mHomeLongitude, 8);
-        DJIWaypoint fly3 = new DJIWaypoint(mHomeLatitude - 6 * Utils.ONE_METER_OFFSET, mHomeLongitude, 4);
-        DJIWaypoint fly4 = new DJIWaypoint(mHomeLatitude - 4 * Utils.ONE_METER_OFFSET, mHomeLongitude, 3);
-        DJIWaypoint fly5 = new DJIWaypoint(mHomeLatitude - 2 * Utils.ONE_METER_OFFSET, mHomeLongitude, 2);
-
-
-        //Step 3: add actions
-//        northPoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.GimbalPitch, -60));
-//        northPoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.StartTakePhoto, 0));
-//        eastPoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.StartTakePhoto, 0));
-//        southPoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.RotateAircraft, 60));
-//        southPoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.StartRecord, 0));
-//        westPoint.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.StopRecord, 0));
-        fly5.addAction(new DJIWaypoint.DJIWaypointAction(DJIWaypoint.DJIWaypointActionType.GimbalPitch, -90));
-
-        //Step 4: add waypoints into the mission
-//        waypointsList.add(northPoint);
-//        waypointsList.add(eastPoint);
-//        waypointsList.add(southPoint);
-//        waypointsList.add(westPoint);
-        waypointsList.add(fly0);
-        waypointsList.add(fly1);
-        waypointsList.add(fly2);
-        waypointsList.add(fly3);
-        waypointsList.add(fly4);
-        waypointsList.add(fly5);
+        for (int i=0; i<NUM_WAYPOINTS + 1; i++) {
+            double y_offset = STARTING_DISTANCE - i*(STARTING_DISTANCE/NUM_WAYPOINTS);
+            double y_pos = mHomeLongitude + (y_offset * Utils.ONE_METER_OFFSET);
+            float alt = (float) getTrajectory(-y_offset, RATE_DESCENT, ALT_FLYING, ALT_DELIVERY, B_OFFSET);
+            waypointsList.add(new DJIWaypoint(
+                    mHomeLatitude,
+                    y_pos,
+                    alt
+            ));
+            Utils.addLineToSB(trajSB, "Waypoint", i);
+            Utils.addLineToSB(trajSB, "y_offset", y_offset);
+            Utils.addLineToSB(trajSB, "alt", alt);
+        }
 
         waypointMission.addWaypoints(waypointsList);
+
+        Utils.setResultToText(mContext, mTrajectoryInfoTV, trajSB.toString());
 
         return waypointMission;
     }
